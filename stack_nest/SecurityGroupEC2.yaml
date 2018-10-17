@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: cfn
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: test
+      AllowedValues:
+        - prod
+        - test
+      ConstraintDescription: must be a prod or test
+
+Resources:
+#    BastionServer SecurityGroup
+  SecurityGroupForBastion:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub "${ProjectId}-${EnvironmentType}-Bastion-SG"
+      GroupDescription: >-
+        SG for Bastion Server
+#    Inbound SecurityGroup
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: SSH
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          Description: HTTP
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          Description: HTTPS
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      VpcId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-vpc"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-Bastion-SG"
+
+#    AplicattionServer SecurityGroup
+  SecurityGroupForAp:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub "${ProjectId}-${EnvironmentType}-Ap-SG"
+      GroupDescription: >-
+        SG for Ap Server
+#    Inbound SecurityGroup
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref SecurityGroupForBastion
+          Description: SSH
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          Description: HTTP
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          Description: HTTPS
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      VpcId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-vpc"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-Ap-SG"
+
+
+#    WEBServer SecurityGroup
+  SecurityGroupForWeb:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub "${ProjectId}-${EnvironmentType}-Web-SG"
+      GroupDescription: >-
+        SG for Web Server
+#    Inbound SecurityGroup
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref SecurityGroupForBastion
+          Description: SSH
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        - CidrIp: 0.0.0.0/0
+          Description: HTTP
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          Description: HTTPS
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      VpcId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-vpc"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-Web-SG"
+Outputs:
+  SecurityGroupForBastion:
+    Value: !Ref SecurityGroupForBastion
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForBastion"
+  SecurityGroupForAp:
+    Value: !Ref SecurityGroupForAp
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForAp"
+  SecurityGroupForWeb:
+    Value: !Ref SecurityGroupForWeb
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForWeb"

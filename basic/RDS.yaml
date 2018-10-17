@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  MyUserPassword:
+    Description: 'DB user'
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: ^[a-zA-Z0-9]*$
+    ConstraintDescription: test
+Resources:
+  myDBSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: description
+      SubnetIds:
+        - !ImportValue 'aws-network-basis:DBSubnet1'
+        - !ImportValue 'aws-network-basis:DBSubnet2'
+      Tags:
+        - Key: Name
+          Value: MyDBSubnetGroup
+  MyDB:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBInstanceIdentifier: MyRDSinstance
+      DBName: DBName
+      AllocatedStorage: '100'
+      DBInstanceClass: db.m1.small
+      Engine: MySQL
+      EngineVersion: '5.5'
+      DBSubnetGroupName: !Ref myDBSubnetGroup
+      VPCSecurityGroups:
+        - !ImportValue 'SecurityGroup:SecurityGroupForDBServer'
+      MasterUsername: DBUser
+      MasterUserPassword: !Ref MyUserPassword
+      Tags:
+        - Key: Name
+          Value: My SQL Database
+    DeletionPolicy: Snapshot

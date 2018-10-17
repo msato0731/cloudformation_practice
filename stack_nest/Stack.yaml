@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Network:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #TemplateURL: https://s3-ap-northeast-1.amazonaws.com<パケット名>
+      TimeoutInMinutes: '60'
+  SGALB:
+    DependsOn: Network
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #TemplateURL: https://s3-ap-northeast-1.amazonaws.com<パケット名>
+      TimeoutInMinutes: '60'
+  SGEC2:
+    DependsOn: SGALB
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #TemplateURL: https://s3-ap-northeast-1.amazonaws.com<パケット名>
+  SGRDS:
+    DependsOn: SGEC2
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #TemplateURL: https://s3-ap-northeast-1.amazonaws.com<パケット名>
+      TimeoutInMinutes: '60'
+  SGEFS:
+    DependsOn: SGRDS
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      #TemplateURL: https://s3-ap-northeast-1.amazonaws.com<パケット名>
+      TimeoutInMinutes: '60'
+
+# Outputs:
+#   StackRef:
+#     Value: !Ref myStack
+#   OutputFromNestedStack:
+#     Value: !GetAtt myStack.Outputs.BucketName

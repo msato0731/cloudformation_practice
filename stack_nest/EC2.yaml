@@ -1,0 +1,183 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: cfn
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: test
+      AllowedValues:
+        - prod
+        - test
+      ConstraintDescription: must be a prod or test
+  KeyPairName:
+    Type: "AWS::EC2::KeyPair::KeyName"
+    Description: SSH keyPair
+  BastionServerImageName:
+    Type: "AWS::EC2::Image::Id"
+    Description: Bastion Server AMI Image ID
+    Default: ami-e99f4896
+  WebServerImageName:
+    Type: "AWS::EC2::Image::Id"
+    Description: Web Server AMI Image ID
+    Default: ami-e99f4896
+  ApServerImageName:
+    Type: "AWS::EC2::Image::Id"
+    Description: AP Server AMI Image ID
+    Default: ami-e99f4896
+
+Mappings:
+  prod:
+    AvailabilityZone:
+      Bastion: ap-northeast-1a
+      Web: ap-northeast-1a
+      Ap: ap-northeast-1a
+    IPAddress:
+      Bastion: 10.0.1.11
+      Web: 10.0.1.21
+      Ap: 10.0.3.11
+    InstanceType:
+      Bastion: t2.micro
+      Web: t2.micro
+      Ap: t2.micro
+
+  test:
+    AvailabilityZone:
+      Bastion: ap-northeast-1a
+      Web: ap-northeast-1a
+      Ap: ap-northeast-1a
+    IPAddress:
+      Bastion: 10.1.1.11
+      Web: 10.1.1.21
+      Ap: 10.1.3.11
+    InstanceType:
+      Bastion: t2.micro
+      Web: t2.micro
+      Ap: t2.micro
+
+Resources:
+#    BastionServer instance
+  EC2ForBastionServer:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref BastionServerImageName
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, Bastion ]
+      KeyName: !Ref KeyPairName
+      InstanceType: !FindInMap [ !Ref EnvironmentType, InstanceType, Bastion ]
+      InstanceInitiatedShutdownBehavior: stop
+      # IamInstanceProfile: EC2_Bastion
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          PrivateIpAddress: !FindInMap [ !Ref EnvironmentType, IPAddress, Bastion ]
+          SubnetId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet1"}
+          GroupSet:
+            - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForBastion"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-BastionServer"
+      UserData:
+        'Fn::Base64': !Sub >
+          #!/bin/bash -xe
+
+          hostnamectl set-hostname bastion01
+# #    EIP allocation ApServer
+#   EIPBastionServerallocation:
+#     Type: 'AWS::EC2::EIPAssociation'
+#     Properties:
+#         AllocationId: "eipalloc-68468355"
+#         InstanceId: !Ref EC2ForBastionServer
+#     CreationPolicy:
+#       ResourceSignal:
+#         Timeout: PT5M
+
+
+# #    WebServer instance
+  EC2ForWebServer:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref WebServerImageName
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, Web ]
+      KeyName: !Ref KeyPairName
+      InstanceType: !FindInMap [ !Ref EnvironmentType, InstanceType, Web ]
+      InstanceInitiatedShutdownBehavior: stop
+      # IamInstanceProfile: EC2_WEB
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          PrivateIpAddress: !FindInMap [ !Ref EnvironmentType, IPAddress, Web ]
+          SubnetId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet1"}
+          GroupSet:
+            - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForWeb"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-WebServer"
+      UserData:
+        'Fn::Base64': !Sub >
+          #!/bin/bash -xe
+
+          hostnamectl set-hostname web01
+# #    EIP allocation WebServer
+#   EIPWebServerallocation:
+#     Type: 'AWS::EC2::EIPAssociation'
+#     Properties:
+#         AllocationId: "eipalloc-cfd316f2"
+#         InstanceId: !Ref EC2ForWebServer
+#     CreationPolicy:
+#       ResourceSignal:
+#         Timeout: PT5M
+
+
+#    ApServer instance
+  EC2ForApServer:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref ApServerImageName
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, Ap ]
+      KeyName: !Ref KeyPairName
+      InstanceType: !FindInMap [ !Ref EnvironmentType, InstanceType, Ap ]
+      InstanceInitiatedShutdownBehavior: stop
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          DeleteOnTermination: true
+          PrivateIpAddress: !FindInMap [ !Ref EnvironmentType, IPAddress, Ap ]
+          SubnetId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PrivateSubnet1"}
+          GroupSet:
+            - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForAp"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-Apserver"
+      UserData:
+        'Fn::Base64': !Sub >
+          #!/bin/bash -xe
+
+          hostnamectl set-hostname ap01
+# #    EIP allocation ApServer
+#   EIPApServerallocation:
+#     Type: 'AWS::EC2::EIPAssociation'
+#     Properties:
+#         AllocationId: "eipalloc-a7d2179a"
+#         InstanceId: !Ref EC2ForApServer
+#     CreationPolicy:
+#       ResourceSignal:
+#         Timeout: PT5M
+
+Outputs:
+  EC2ForApServer:
+    Value: !Ref EC2ForApServer
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-EC2ForApServer"
+  EC2ForBastionServer:
+    Value: !Ref EC2ForBastionServer
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-EC2ForBastionServer"
+  EC2ForWebServer:
+    Value: !Ref EC2ForWebServer
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-EC2ForWebServer"

@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: MyVPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 2f747ef4-17d1-4d77-bfc7-20839a391818
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties: {}
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 2a00e403-1194-44a1-b532-1d2f1cfa4960
+  EC2VPCG35FFW:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 088a6c71-12a9-4112-8456-fe96c476f38a
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: PublicRouteTable
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 6c3f5530-2d22-4103-bbb6-01fc1a25bf89
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: 21e65dd2-67ed-4675-ad28-3489a9ab6999
+    DependsOn:
+      - EC2VPCG35FFW
+  PublicSubnet01:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      Tags:
+        - Key: Name
+          Value: PublicSubnet
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: de1467a1-93db-4fb4-af93-ca98b5d9fadc
+  EC2SRTA1PM0J:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet01
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: c7332a52-da3c-4cb6-abf8-14f5aae60413

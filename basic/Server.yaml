@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  EC2ForWebServer:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      Comment1: Install and bootstrap httpd
+      'AWS::CloudFormation::Init':
+        configSets:
+          Install:
+            - Install
+        Install:
+          packages:
+            yum:
+              httpd: []
+          services:
+            sysvinit:
+              httpd:
+                enable: true
+                ensureRunning: true
+    Properties:
+      ImageId: ami-a77c30c1
+      KeyName: networkserver
+      InstanceType: t2.nano
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          DeleteOnTermination: true
+          PrivateIpAddress: 10.0.1.10
+          SubnetId: !ImportValue 'aws-network-basis:PublicSubnet'
+          GroupSet:
+            - !ImportValue 'SecurityGroup:SecurityGroupForWebServer'
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: standard
+            VolumeSize: 8
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: aws-network-basis-cfn-web-server
+      UserData:
+        'Fn::Base64': !Sub >
+          #!/bin/bash -xe
+
+          yum install -y aws-cfn-bootstrap
+
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource
+          EC2ForWebServer --configsets Install --region ${AWS::Region}
+
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource
+          EC2ForWebServer --region ${AWS::Region}
+#    EIP allocation WebServer
+  EIPWebServer:
+    Type: 'AWS::EC2::EIPAssociation'
+    Properties:
+        AllocationId: "eipalloc-d6f6e2ec"
+        InstanceId: !Ref EC2ForWebServer
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+Outputs:
+  EC2ForWebServer:
+    Value: !Ref EC2ForWebServer
+    Export:
+      Name: 'aws-network-basis:EC2ForWebServer'

@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  CPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: CPU alarm for my instance
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '60'
+      EvaluationPeriods: '3'
+      Threshold: '90'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: InstanceId
+        Value: !ImportValue 'aws-network-basis:EC2ForWebServer'

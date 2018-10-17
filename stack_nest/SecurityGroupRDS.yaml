@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: cfn
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: test
+      AllowedValues:
+        - prod
+        - test
+      ConstraintDescription: must be a prod or test
+Resources:
+#    DBServer SecurityGroup
+  SecurityGroupForDB:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub "${ProjectId}-${EnvironmentType}-DB-SG"
+      GroupDescription: >-
+        SG for DB Server
+#    Inbound SecurityGroup
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: Mysql
+          FromPort: 3306
+          IpProtocol: tcp
+          ToPort: 3306
+      VpcId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-vpc"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-DB-SG"
+Outputs:
+  SecurityGroupForDB:
+    Value: !Ref SecurityGroupForDB
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForDB"
